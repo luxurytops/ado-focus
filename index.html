@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADO FOCUS — Mini-diagnostic interactif</title>
+<style>
+:root{
+  --navy:#0b2345; --blue:#164d82; --gold:#d6a63d; --bg:#f4f7fb;
+  --card:#ffffff; --text:#1e293b; --muted:#64748b; --border:#dbe3ee;
+  --ok:#157347; --warn:#9a6700; --alert:#a61b29;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:Arial,Helvetica,sans-serif; line-height:1.55;
+}
+.wrap{max-width:920px;margin:24px auto;padding:0 16px 40px}
+.hero{
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  color:white;border-radius:18px;padding:30px 28px 24px;
+}
+.kicker{color:#f4d98d;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+h1{font-size:32px;line-height:1.15;margin:6px 0 8px}
+.hero p{margin:0;color:#e7eef8}
+.notice{
+  margin-top:16px;background:#fff8e8;border:1px solid #ead18d;border-radius:12px;
+  padding:14px 16px;color:#5d4a16
+}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:20px;margin-top:16px
+}
+h2{font-size:21px;color:var(--navy);margin:0 0 12px}
+.scale{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px
+}
+.scale div{background:#eef4fa;border-radius:10px;padding:9px;text-align:center;font-size:13px}
+.question{padding:18px 0;border-top:1px solid #edf1f5}
+.question:first-child{border-top:0;padding-top:0}
+.qtext{font-weight:700;margin-bottom:10px}
+.options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.opt{
+  display:flex;align-items:center;gap:7px;border:1px solid var(--border);
+  border-radius:10px;padding:10px;background:white;cursor:pointer;min-height:46px
+}
+.opt:hover{background:#f8fbff}
+input[type=radio]{width:18px;height:18px;accent-color:var(--blue)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button{
+  min-height:46px;border-radius:11px;padding:0 18px;font-weight:800;
+  border:1px solid var(--border);cursor:pointer;font-size:15px
+}
+.primary{background:var(--navy);color:white;border-color:var(--navy)}
+.secondary{background:white;color:var(--navy)}
+.error{display:none;margin-top:12px;color:var(--alert);font-weight:700}
+.results{display:none}
+.scoreline{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px
+}
+.score{font-size:42px;font-weight:900;color:var(--navy)}
+.zone{
+  display:inline-block;border-radius:999px;padding:7px 11px;font-weight:800;font-size:13px
+}
+.zone.ok{background:#e7f6ee;color:var(--ok)}
+.zone.warn{background:#fff4cf;color:var(--warn)}
+.zone.alert{background:#fde8eb;color:var(--alert)}
+.profile{
+  margin-top:16px;padding:16px;border-radius:12px;background:#f7f9fc;border:1px solid var(--border)
+}
+.profile strong{color:var(--navy)}
+.bars{margin-top:12px}
+.barrow{display:grid;grid-template-columns:150px 1fr 48px;gap:10px;align-items:center;margin:9px 0}
+.track{height:12px;background:#e9eef5;border-radius:999px;overflow:hidden}
+.fill{height:100%;background:var(--blue);border-radius:999px}
+.small{font-size:13px;color:var(--muted)}
+.reflect{
+  margin-top:16px;padding:16px;border-left:4px solid var(--gold);
+  background:#fffaf0;border-radius:10px
+}
+.footer{
+  margin-top:18px;text-align:center;color:var(--muted);font-size:12px
+}
+@media(max-width:640px){
+  h1{font-size:27px}.options{grid-template-columns:1fr 1fr}
+  .scale{grid-template-columns:1fr 1fr}.barrow{grid-template-columns:105px 1fr 42px}
+}
+@media print{
+  body{background:white}.wrap{max-width:none}.actions{display:none}.hero{background:white;color:#000;border:1px solid #bbb}
+  .hero p,.kicker{color:#333}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div class="kicker">ADO FOCUS · MINI-DIAGNOSTIC INTERACTIF</div>
+    <h1>Où en est votre adolescent aujourd’hui ?</h1>
+    <p>Attention · organisation · stress · motivation</p>
+  </section>
+
+  <div class="notice">
+    <strong>Important :</strong> cet outil n’est ni un diagnostic psychologique ni un diagnostic médical.
+    Il sert uniquement à observer des tendances et à ouvrir une discussion constructive.
+  </div>
+
+  <section class="card">
+    <h2>Consigne</h2>
+    <p>Pour chaque affirmation, choisissez la réponse qui correspond le mieux à ce que vous observez actuellement.</p>
+    <div class="scale">
+      <div><strong>1</strong><br>Jamais</div>
+      <div><strong>2</strong><br>Parfois</div>
+      <div><strong>3</strong><br>Souvent</div>
+      <div><strong>4</strong><br>Très souvent</div>
+    </div>
+  </section>
+
+  <form id="quiz" class="card">
+    <div id="questions"></div>
+    <div class="actions">
+      <button type="submit" class="primary">Calculer mon résultat</button>
+      <button type="button" id="resetBtn" class="secondary">Recommencer</button>
+    </div>
+    <div id="error" class="error" role="alert">Merci de répondre aux 8 questions avant de calculer le résultat.</div>
+  </form>
+
+  <section id="results" class="card results" aria-live="polite">
+    <h2>Votre résultat</h2>
+    <div class="scoreline">
+      <div class="score"><span id="score">0</span>/32</div>
+      <div id="zoneBadge" class="zone"></div>
+    </div>
+    <p id="zoneText"></p>
+
+    <div class="profile">
+      <strong>Profil dominant ADO FOCUS : <span id="profileName"></span></strong>
+      <p id="profileText"></p>
+
+      <div class="bars">
+        <div class="barrow">
+          <div>Dispersion</div><div class="track"><div id="barD" class="fill"></div></div><div id="valD"></div>
+        </div>
+        <div class="barrow">
+          <div>Stress / saturation</div><div class="track"><div id="barS" class="fill"></div></div><div id="valS"></div>
+        </div>
+        <div class="barrow">
+          <div>Démotivation</div><div class="track"><div id="barM" class="fill"></div></div><div id="valM"></div>
+        </div>
+      </div>
+      <p class="small">Les profils sont calculés sur la moyenne des réponses de chaque groupe de questions afin de comparer équitablement les trois tendances.</p>
+    </div>
+
+    <div class="reflect">
+      <strong>Question à se poser :</strong><br>
+      Si votre adolescent répondait lui-même à ce questionnaire, pensez-vous qu’il donnerait les mêmes réponses que vous ?
+      <br><br>
+      ☐ Oui, probablement &nbsp;&nbsp; ☐ Pas complètement &nbsp;&nbsp; ☐ Nos perceptions seraient très différentes
+    </div>
+  </section>
+
+  <div class="footer">ADO FOCUS · Une observation n’est pas une étiquette : elle sert à mieux comprendre et à mieux agir.</div>
+</div>
+
+<script>
+(function(){
+  const data = [
+    "Mon adolescent commence une tâche puis se laisse facilement distraire.",
+    "Son téléphone, les réseaux sociaux ou les écrans interrompent régulièrement son travail.",
+    "Il reporte souvent une tâche même lorsqu’il sait qu’elle est importante.",
+    "Il a du mal à rester concentré sur une même activité pendant 20 à 30 minutes.",
+    "Lorsqu’il a plusieurs choses à faire, il semble ne plus savoir par où commencer.",
+    "Le stress, la peur de l’échec ou le découragement semblent parfois le bloquer.",
+    "Il a besoin qu’on lui rappelle régulièrement ce qu’il doit faire.",
+    "Il dit ou laisse entendre : « je n’ai pas envie », « ça ne sert à rien » ou « je n’y arriverai pas »."
+  ];
+
+  const labels = ["Jamais","Parfois","Souvent","Très souvent"];
+  const questions = document.getElementById("questions");
+
+  data.forEach((text, i) => {
+    const block = document.createElement("div");
+    block.className = "question";
+
+    const q = document.createElement("div");
+    q.className = "qtext";
+    q.textContent = (i+1) + ". " + text;
+    block.appendChild(q);
+
+    const opts = document.createElement("div");
+    opts.className = "options";
+
+    for(let v=1; v<=4; v++){
+      const lab = document.createElement("label");
+      lab.className = "opt";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "q" + (i+1);
+      input.value = String(v);
+      input.setAttribute("aria-label", labels[v-1]);
+      const span = document.createElement("span");
+      span.textContent = v + " · " + labels[v-1];
+      lab.appendChild(input);
+      lab.appendChild(span);
+      opts.appendChild(lab);
+    }
+
+    block.appendChild(opts);
+    questions.appendChild(block);
+  });
+
+  function avg(values){ return values.reduce((a,b)=>a+b,0) / values.length; }
+
+  function profileLabel(d,s,m){
+    const max = Math.max(d,s,m);
+    const eps = 0.15;
+    const tied = [];
+    if (Math.abs(d-max) <= eps) tied.push("Dispersion");
+    if (Math.abs(s-max) <= eps) tied.push("Stress / saturation");
+    if (Math.abs(m-max) <= eps) tied.push("Démotivation / manque d’autonomie");
+    return tied.length > 1 ? "Profil mixte : " + tied.join(" + ") : tied[0];
+  }
+
+  function profileDescription(name){
+    if(name.startsWith("Profil mixte")) return "Plusieurs tendances ressortent à un niveau proche. L’accompagnement doit donc éviter une réponse unique et chercher ce qui déclenche le plus souvent les difficultés.";
+    if(name === "Dispersion") return "Les difficultés semblent surtout liées à l’attention, aux distractions et au passage d’une tâche à l’autre. Le besoin prioritaire est un cadre clair et une méthode de concentration simple.";
+    if(name === "Stress / saturation") return "Les difficultés semblent surtout liées au sentiment d’être dépassé, au stress ou à la peur de l’échec. Le besoin prioritaire est de retrouver du calme, de la sécurité et une reprise d’action progressive.";
+    return "Les difficultés semblent surtout liées à la motivation, à l’autonomie ou au découragement. Le besoin prioritaire est de reconstruire du sens, des petites réussites et des preuves de progression.";
+  }
+
+  document.getElementById("quiz").addEventListener("submit", function(e){
+    e.preventDefault();
+    const values = [];
+    for(let i=1;i<=8;i++){
+      const chosen = document.querySelector('input[name="q'+i+'"]:checked');
+      if(!chosen){
+        document.getElementById("error").style.display = "block";
+        document.getElementById("results").style.display = "none";
+        return;
+      }
+      values.push(Number(chosen.value));
+    }
+
+    document.getElementById("error").style.display = "none";
+
+    const total = values.reduce((a,b)=>a+b,0);
+    let zone="", zoneText="", cls="";
+    if(total <= 15){
+      zone = "Zone plutôt stable"; cls="ok";
+      zoneText = "L’attention semble globalement fonctionnelle, même si certaines habitudes peuvent encore être renforcées.";
+    }else if(total <= 23){
+      zone = "Zone de vigilance"; cls="warn";
+      zoneText = "Plusieurs facteurs perturbent probablement la concentration ou l’organisation. Il est utile d’identifier lesquels.";
+    }else{
+      zone = "Zone prioritaire"; cls="alert";
+      zoneText = "Les difficultés semblent fréquentes. Un travail structuré sur l’attention, les émotions, l’organisation et la motivation peut être pertinent.";
+    }
+
+    const d = avg(values.slice(0,4));
+    const s = avg(values.slice(4,6));
+    const m = avg(values.slice(6,8));
+    const pname = profileLabel(d,s,m);
+
+    document.getElementById("score").textContent = total;
+    const badge = document.getElementById("zoneBadge");
+    badge.textContent = zone;
+    badge.className = "zone " + cls;
+    document.getElementById("zoneText").textContent = zoneText;
+    document.getElementById("profileName").textContent = pname;
+    document.getElementById("profileText").textContent = profileDescription(pname);
+
+    const setBar = (idBar,idVal,val) => {
+      document.getElementById(idBar).style.width = ((val/4)*100).toFixed(0) + "%";
+      document.getElementById(idVal).textContent = val.toFixed(1) + "/4";
+    };
+    setBar("barD","valD",d);
+    setBar("barS","valS",s);
+    setBar("barM","valM",m);
+
+    const res = document.getElementById("results");
+    res.style.display = "block";
+    res.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    document.getElementById("quiz").reset();
+    document.getElementById("results").style.display = "none";
+    document.getElementById("error").style.display = "none";
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+})();
+</script>
+</body>
+</html>
