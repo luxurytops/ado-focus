@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADO FOCUS | Mini-diagnostic V2 automatique</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#233149;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:auto;padding:18px 14px 50px}
+header{background:linear-gradient(115deg,#0b2345,#1c5688);color:white;padding:25px;border-radius:17px}
+header small{letter-spacing:2px;color:#f0cf85;font-weight:700}h1{font-size:clamp(25px,5vw,36px);margin:8px 0}header p{color:#e3efff;margin:0}
+section{background:white;border:1px solid #dce5ed;border-radius:15px;margin-top:14px;padding:19px}
+.notice{background:#fff8e9;color:#644c17;border:1px solid #f0dcab}
+h2{margin:0 0 13px;color:#102d51;font-size:20px}
+.item{border-top:1px solid #edf1f5;padding:17px 0}.item:first-child{border:0;padding-top:0}
+.item h3{font-size:16px;margin:0 0 12px;line-height:1.45}
+.answers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.answer{border:1px solid #cddae8;padding:10px 8px;border-radius:10px;display:flex;gap:7px;align-items:center;cursor:pointer;min-height:48px}
+.answer:has(input:checked){border:2px solid #14578c;background:#ecf5fc;padding:9px 7px}
+input{accent-color:#14578c;width:18px;height:18px;flex-shrink:0}
+.answer span{font-size:13px}button{background:#102d51;border:0;color:white;border-radius:10px;padding:13px 17px;font-weight:700;min-height:45px;cursor:pointer}
+.meter{height:11px;background:#e6edf4;border-radius:20px;overflow:hidden}.meter>div{height:100%;background:#17659f;width:0;transition:width .15s}
+.status{font-weight:700;color:#163e65;margin:10px 0}
+#result[hidden]{display:none} .score{font-size:43px;font-weight:800;color:#102d51}
+.tag{display:inline-block;padding:6px 12px;border-radius:20px;background:#e8eef7;font-weight:700}
+.profile{background:#eff5fa;border-left:4px solid #cda247;border-radius:9px;padding:12px;margin-top:15px}
+.barrow{display:grid;grid-template-columns:145px 1fr 45px;gap:9px;align-items:center;margin:10px 0;font-size:13px}
+.track{height:9px;background:#e0e8f1;border-radius:15px;overflow:hidden}.fill{height:100%;background:#1a5a8f;width:0}
+.muted{color:#65738a;font-size:13px}
+@media(max-width:560px){.answers{grid-template-columns:1fr 1fr}.barrow{grid-template-columns:112px 1fr 38px}}
+</style>
+</head>
+<body><main>
+<header><small>DEEP PERFORMANCE × ADO FOCUS · VERSION 2</small><h1>Mini-diagnostic ADO FOCUS</h1><p>Où en est votre adolescent ? Attention · Organisation · Stress · Motivation</p></header>
+<section class="notice"><strong>Outil d'observation, non clinique.</strong> Ce questionnaire n'établit aucun diagnostic psychologique ou médical. Répondez selon vos observations habituelles.</section>
+<section><h2>8 questions · calcul automatique</h2><p>Cochez une réponse par question : <strong>1</strong> Jamais · <strong>2</strong> Parfois · <strong>3</strong> Souvent · <strong>4</strong> Très souvent.</p><div id="questions"></div><button type="button" id="reset">Recommencer</button></section>
+<section aria-live="polite"><h2>Votre progression</h2><div class="meter"><div id="progress"></div></div><p class="status" id="status">0 question sur 8 renseignée</p><p id="provisional">Score provisoire : 0 point</p>
+<div id="result" hidden><hr><h2>Votre résultat</h2><div><span id="total" class="score"></span> / 32</div><p><span id="zone" class="tag"></span></p><p id="meaning"></p>
+<div class="profile"><strong>Profil dominant : <span id="profile"></span></strong><p id="advice"></p>
+<div class="barrow"><span>Dispersion</span><div class="track"><div class="fill" id="bd"></div></div><span id="vd"></span></div>
+<div class="barrow"><span>Stress / saturation</span><div class="track"><div class="fill" id="bs"></div></div><span id="vs"></span></div>
+<div class="barrow"><span>Démotivation</span><div class="track"><div class="fill" id="bm"></div></div><span id="vm"></span></div>
+<p class="muted">Comparaison des moyennes par groupe de questions, et non des sommes.</p></div>
+<p><strong>Pour aller plus loin :</strong> votre adolescent répondrait-il de la même manière ? Comparez vos perceptions sans jugement.</p>
+</div></section>
+<p class="muted">ADO FOCUS · Version 2 — les réponses restent dans cette page et ne sont pas envoyées automatiquement aux coachs.</p>
+</main>
+<script>
+(function(){
+"use strict";
+const statements=[
+"Mon adolescent commence une tâche puis se laisse facilement distraire.",
+"Son téléphone, les réseaux sociaux ou les écrans interrompent régulièrement son travail.",
+"Il reporte souvent une tâche même lorsqu’il sait qu’elle est importante.",
+"Il a du mal à rester concentré sur une même activité pendant 20 à 30 minutes.",
+"Lorsqu’il a plusieurs choses à faire, il semble ne plus savoir par où commencer.",
+"Le stress, la peur de l’échec ou le découragement semblent parfois le bloquer.",
+"Il a besoin qu’on lui rappelle régulièrement ce qu’il doit faire.",
+"Il dit ou laisse entendre : « je n’ai pas envie », « ça ne sert à rien » ou « je n’y arriverai pas »."
+];
+const labels=["Jamais","Parfois","Souvent","Très souvent"];
+const answers=Array(8).fill(null);
+const byId=id=>document.getElementById(id);
+const qroot=byId("questions");
+statements.forEach((statement,i)=>{
+ const field=document.createElement("div");field.className="item";
+ const heading=document.createElement("h3");heading.id="question-"+i;heading.textContent=(i+1)+". "+statement;field.appendChild(heading);
+ const choices=document.createElement("div");choices.className="answers";choices.setAttribute("role","group");choices.setAttribute("aria-labelledby",heading.id);
+ labels.forEach((label,j)=>{
+  const option=document.createElement("label");option.className="answer";
+  const radio=document.createElement("input");radio.type="radio";radio.name="q"+i;radio.value=String(j+1);
+  radio.addEventListener("change",()=>{answers[i]=j+1;update()});
+  const txt=document.createElement("span");txt.textContent=(j+1)+" · "+label;
+  option.append(radio,txt);choices.appendChild(option);
+ });
+ field.appendChild(choices);qroot.appendChild(field);
+});
+function mean(arr){return arr.reduce((a,b)=>a+b,0)/arr.length}
+function setbar(key,value){byId("b"+key).style.width=(value/4*100)+"%";byId("v"+key).textContent=value.toFixed(1)}
+function update(){
+ const filled=answers.filter(v=>v!==null), count=filled.length, partial=filled.reduce((a,b)=>a+b,0);
+ byId("progress").style.width=(count/8*100)+"%";
+ byId("status").textContent=count+" question"+(count>1?"s":"")+" sur 8 renseignée"+(count>1?"s":"");
+ byId("provisional").textContent="Score provisoire : "+partial+" point"+(partial>1?"s":"")+(count<8?" (sur les réponses fournies)":"");
+ byId("result").hidden=count!==8;
+ if(count!==8)return;
+ const total=partial;
+ const d=mean(answers.slice(0,4)),s=mean(answers.slice(4,6)),m=mean(answers.slice(6,8));
+ byId("total").textContent=total;
+ let zone,meaning;
+ if(total<=15){zone="Zone plutôt stable";meaning="Les difficultés observées sont relativement peu fréquentes. Certaines habitudes peuvent néanmoins être renforcées."}
+ else if(total<=23){zone="Zone de vigilance";meaning="Plusieurs difficultés reviennent assez souvent : identifiez les situations et les déclencheurs prioritaires."}
+ else{zone="Zone prioritaire";meaning="Les difficultés sont fréquemment observées : un accompagnement structuré peut aider à comprendre et à expérimenter des changements progressifs."}
+ byId("zone").textContent=zone;byId("meaning").textContent=meaning;
+ const max=Math.max(d,s,m),names=[];
+ if(Math.abs(d-max)<0.151)names.push("Dispersion");
+ if(Math.abs(s-max)<0.151)names.push("Stress / saturation");
+ if(Math.abs(m-max)<0.151)names.push("Démotivation / autonomie");
+ const mixed=names.length>1;
+ byId("profile").textContent=mixed?"Profil mixte : "+names.join(" + "):names[0];
+ byId("advice").textContent=mixed?"Plusieurs tendances proches ressortent. Cherchez avec votre adolescent ce qui explique ses difficultés avant de choisir une action.":names[0]==="Dispersion"?"Priorité possible : réduire les interruptions et installer de courtes périodes de concentration.":names[0]==="Stress / saturation"?"Priorité possible : apaiser le stress, clarifier les premières étapes et valoriser les efforts.":"Priorité possible : reconstruire l'autonomie et la motivation grâce à de petites réussites observables.";
+ setbar("d",d);setbar("s",s);setbar("m",m);
+}
+byId("reset").addEventListener("click",()=>{
+ answers.fill(null);qroot.querySelectorAll('input[type="radio"]').forEach(r=>r.checked=false);update();
+ qroot.scrollIntoView({block:"start",behavior:"smooth"});
+});
+update();
+})();
+</script>
+</body></html>
